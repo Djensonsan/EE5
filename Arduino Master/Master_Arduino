@@ -1,0 +1,52 @@
+#include <SD.h>
+#include "Wire_Jens.h"
+#include "df_can.h"
+
+#define sd_cspin 4
+File myFile;
+void setup() {
+  Serial.begin(9600);
+  Wire.begin();
+
+  Serial.print("Initializing SD card...");
+
+  if (!SD.begin(sd_cspin)) {
+    Serial.println("initialization failed!");
+    return;
+  }
+  Serial.println("initialization success!");
+  myFile = SD.open("Log.txt", FILE_WRITE);
+  if (!myFile)
+  {
+    Serial.println("Open Log.txt failed!");
+  } else {
+    Serial.println("Open Log.txt success!");
+  }
+}
+
+void loop() {
+  Wire.requestFrom(8, 96); // request 96 bytes from slave device maximum #8, slave may send less than requested
+  String data;
+  char c;
+  while (Wire.available())   // slave may send less than requested
+  {
+    c = Wire.read();
+    if (strcmp(c,'#')==0) break;
+    data += c;
+  }
+  log(data);
+  delay(3000);
+}
+
+void log (String data)
+{
+  File dataFile = SD.open("Log.txt", FILE_WRITE);
+  if (dataFile) {
+    dataFile.println(data);
+    dataFile.close();
+    Serial.println(data);
+  }
+  else {
+    Serial.println("error opening Log.txt");
+  }
+}

@@ -1,0 +1,264 @@
+//This is a FSM-controlled application
+#include "DualG2HighPowerMotorShield.h"
+#include <Timer.h>
+#include <avr/io.h>
+#include <avr/interrupt.h>
+
+#define max_speed 400
+#define min_speed -400
+
+#define IDLE 57
+#define CLEAN_MOTOR 58
+#define COOL_MOTOR 59
+#define WORK_CLEAN_TRANSIT 60
+#define SLOW_END 61
+
+#define threshold_high_temperature 27 // Start ventilator above this temperature
+#define threshold_low_temperature 25 // Stop ventilator below this temperature
+#define clean_time 600000 //for ventilator: 30 seconds
+#define cool_time 30000 //for ventilator: 10 min
+#define temperature_update_time 5000 //every X seconds read the temperature once
+
+int timer_counter = 0;
+const int prescale  = 1024;
+const int ocr2aval  = 15;
+
+const float iinterval = prescale * (ocr2aval + 1) / (F_CPU / 1.0e6);
+
+int state = IDLE; //state variable initialized at Idle
+int speed = 0;
+int temperature = A3; //A3 as analog input to detect temperature
+int power = 7; //digital 7 as digital output to provide power for the temperature sensor
+
+double buffer[8] = {0, 0, 0, 0, 0, 0, 0, 0}; //buffer to store temperature value
+float avg_temperature; //the avg temperature value used for control the motor
+
+int timer2_counter;
+int previous_working_state;
+
+
+Timer t; //this is the timer for sampling the temperature
+DualG2HighPowerMotorShield18v22 md; //the motor we control
+
+
+void setup() {
+
+  Serial.begin(9600); //setup serial
+  while (!Serial) { // wait for serial port to connect. Needed for Leonardo only
+  }
+
+  cli();  //disable global interrupts while initializing counter registers.
+  TCCR2A = (1 << WGM21); // Set Timer 2 CTC mode
+  TCCR2B = 0b00000111;   // Set prescaler to 1024
+  TIMSK2 = (1 << OCIE2A); // Enable Compare-match register A interrupt for timer2
+  OCR2A = ocr2aval; // This value determines the interrupt interval
+  sei(); // Enable global interrupts
+
+  pinMode(power, OUTPUT); //turn off the power of the temperature sensor
+  digitalWrite(power, LOW);
+
+  t.every(temperature_update_time, takeReading); //every X seconds read the temperature once
+
+  md.init();
+  md.calibrateCurrentOffsets();
+
+  delay(10);
+  md.enableDrivers();
+  delay(1);  // The drivers require a maximum of 1ms to elapse when brought out of sleep mode.
+}
+
+
+void loop() {
+  t.update();
+  switch (state) {
+    case IDLE: //M2 doesn't work in Idle state
+      if (avg_temperature >= threshold_high_temperature)
+      {
+        Serial.println("In Idle");
+        state = CLEAN_MOTOR;
+      }
+      break;
+
+    case SLOW_END:
+      slow_end();
+      if (check_temperature())
+      {
+        state = IDLE;
+      } else {
+        switch (previous_working_state)
+        {
+          case COOL_MOTOR:
+            state = CLEAN_MOTOR;
+            break;
+          case CLEAN_MOTOR:
+            state = COOL_MOTOR;
+            break;
+        }
+      }
+      break;
+
+    case CLEAN_MOTOR:
+      Serial.println("In clean motor");
+      clean_motor();
+      state = SLOW_END;
+      previous_working_state = CLEAN_MOTOR;
+      break;
+
+    case COOL_MOTOR:
+      cool_motor();
+      state = SLOW_END;
+      previous_working_state = COOL_MOTOR;
+      break;
+  }
+}
+
+
+// ISR For Timer 2 Compare-match overflow
+volatile unsigned char value = 0;
+ISR(TIMER2_COMPA_vect)
+{
+  timer_counter++;
+}
+
+
+// Calculate Resistance
+float calculateR(double value)
+{
+  float resistance = 10000 * value / (1023 - value);
+  return resistance;
+}
+
+
+// Calculate Temperature
+float calculateT(float resistor)
+{
+  float temp = log(resistor / 10000);
+  temp = temp / 3435;
+  temp = temp + 1 / (25 + 273.15);
+  temp = 1 / temp;
+  temp = temp - 273.15;
+  return temp;
+}
+
+
+bool check_temperature()
+{
+  return avg_temperature < threshold_low_temperature;
+}
+
+
+//function to sample the temperature
+void takeReading()                          
+{
+  pinMode(power, OUTPUT); //turn on the power
+  digitalWrite(power, HIGH);
+  delay(100); //make the voltage stable
+
+  for (int i = 0; i < 8; i++)
+  {
+    buffer[i] = analogRead(temperature); //sample the temperature
+    delay(10);
+  }
+
+  digitalWrite(power, LOW); //turn off the power
+
+  float avg = 0;
+  float r = 0;
+
+  //calculate the temperature and store it back in the buffer
+  for (int i = 0; i < 8; i++)
+  {
+    buffer[i] = calculateT(calculateR(buffer[i]));
+  }
+
+  for (int i = 0; i < 8; i++)
+  {
+    avg = avg + buffer[i];
+  }
+
+  avg_temperature = avg / 8;
+  Serial.println(state);
+  Serial.print("Temperature is ");
+  Serial.print(avg_temperature);
+  Serial.println("°C");
+}
+
+
+// Default behavior when a fault occurs: Disable drivers (shutdown ventilator) and don't ever start up = manual reset needed!
+void stopIfFault()
+{
+  if (md.getM2Fault())
+  {
+    md.disableDrivers();
+    delay(1);
+    Serial.println("M2 fault");
+    while (1);
+  }
+}
+
+
+// Slow end state
+void slow_end()
+{
+  while (speed != 0)
+  {
+    t.update();
+    if (speed > 0) {
+      md.setM2Speed(speed);
+      speed--;
+      delay(1);
+    }
+    else if (speed < 0) {
+      md.setM2Speed(speed);
+      speed++;
+      delay(1);
+    }
+  }
+}
+
+
+// Routine for cooling the motor
+void cool_motor()
+{
+  timer_counter = 0;
+  while (speed != max_speed) {
+    if (timer_counter >= 1000) {
+      t.update();
+      stopIfFault();
+      md.setM2Speed(speed);
+      speed++;
+      timer_counter = 0;
+    }
+  }
+
+  timer_counter = 0;
+  while (timer_counter < cool_time && check_temperature()) {
+    md.setM2Speed(min_speed);
+    t.update();
+  }
+}
+
+
+// Routine for cleaning the motor
+void clean_motor()
+{
+  timer_counter = 0;
+  while (speed != max_speed) {
+    t.update();
+    Serial.println(speed);
+    if (timer_counter >= 100) {
+      stopIfFault();
+      md.setM2Speed(speed);
+      speed++;
+      timer_counter = 0;
+    }
+  }
+
+  timer_counter = 0;
+  while (timer_counter < clean_time && !check_temperature()) {
+    t.update();
+    md.setM2Speed(max_speed);
+  }
+}
+
+

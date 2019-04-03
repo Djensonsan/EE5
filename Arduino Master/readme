@@ -1,0 +1,2 @@
+All resources for the Arduino Mega that implements: the Wifi Module, CAN bus communication and SD card logging.
+This Arduino communicates with the Joystick Arduino over I2C.

@@ -1,0 +1,93 @@
+//
+// Use of timer2 to generate a signal for a particular frequency on any output pin
+//
+// davekw7x
+//
+#include <avr/io.h>
+#include <avr/interrupt.h>
+
+const int ledPin = 13;
+
+// Constants are computed at compile time
+
+// If you change the prescale value, it affects CS22, CS21, and CS20
+// For a given prescale value, the eight-bit number that you
+// load into OCR2A determines the frequency according to the
+// following formulas:
+// Note that, due to the time spent in the ISR, it's not practical to generate
+// a waveform with period much less than 20 microseconds.  You can speed it up
+// a little by using bit manipulation on the output port instead of digitalWrite.
+//
+// Better yet: Enable "Toggle Output on Compare Match" and don't do any port
+// reading or writing in the ISR.  For this scheme, uou will have to use an
+// Output Compare pin on the ATmega instead of an arbitrary output pin.
+//
+int timer_counter = 0;
+const int prescale  = 1024;
+const int ocr2aval  = 15;
+
+// The following are scaled for convenient printing
+//
+// Interrupt interval in microseconds
+const float iinterval = prescale * (ocr2aval+1) / (F_CPU / 1.0e6);
+
+// Period in microseconds
+const float period    = 2.0 * iinterval;
+
+// Frequency in Hz
+const float freq      = 1.0e6 / period;
+
+void setup()
+{
+   pinMode(ledPin, OUTPUT);
+   Serial.begin(9600);
+   
+   //disable global interrupts while initializing counter registers.
+   
+   cli();
+   
+   // Set Timer 2 CTC mode
+   TCCR2A = (1 << WGM21);
+   
+   //prescalar 1024
+   TCCR2B = 0b00000111;   //prescalar 1024
+   
+   // Enable Compare-match register A interrupt for timer2
+   TIMSK2 = (1 << OCIE2A);
+
+   // This value determines the interrupt interval
+   OCR2A = ocr2aval;
+
+   // Enable global interrupts: Ready to run!
+   sei();
+
+   Serial.print("Interrupt interval = ");
+   Serial.print(iinterval);
+   Serial.println(" microseconds");
+   Serial.print("Period             = ");
+   Serial.print(period); 
+   Serial.println(" microseconds");
+   Serial.print("Frequency          = ");
+   Serial.print(freq); 
+   Serial.println(" Hz");
+   Serial.println(F_CPU);
+
+}
+
+
+void loop()
+{
+   // main code
+}
+
+// ISR For Timer 2 Compare-match overflow
+volatile unsigned char value = 0;
+ISR(TIMER2_COMPA_vect)
+{
+   timer_counter++;
+   if(timer_counter == 10000)
+   {
+   digitalWrite(ledPin, (++value)&1);
+   timer_counter = 0;
+   }
+}

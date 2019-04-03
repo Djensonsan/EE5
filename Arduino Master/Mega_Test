@@ -1,0 +1,83 @@
+// Receive data over I2C and send it over wifi to phone.
+#include "Wire_Jens.h"
+#include "WiFiEsp.h"
+
+char ssid[] = "ARDUINO_SERVER";         // your network SSID (name)
+char pass[] = "123456789";        // your network password
+int status = WL_IDLE_STATUS;     // the Wifi radio's status
+int reqCount = 0;   // number of requests received
+int record;
+String data;
+
+WiFiEspServer server(8080);
+RingBuffer buf(8); // use a ring buffer to increase speed and reduce memory allocation
+
+void setup() {
+  // WIFI MODULE
+  Serial.begin(9600);
+  Serial3.begin(115200);    // initialize serial for ESP module
+  WiFi.init(&Serial3);
+  Wire.begin();
+
+  // check for the presence of the shield
+  if (WiFi.status() == WL_NO_SHIELD) {
+    Serial.println(F("WiFi shield not present"));
+    while (true); // don't continue
+  }
+  // initialize ESP module
+  Serial.print(F("Attempting to start AP "));
+  Serial.println(ssid);
+
+  IPAddress localIp(192, 168, 1, 1);
+  WiFi.configAP(localIp);
+
+  // start access point
+  status = WiFi.beginAP(ssid, 10, pass, ENC_TYPE_WPA2_PSK);
+
+  Serial.println(F("Access point started"));
+  printWifiStatus();
+
+  // start the TCP server on port 8080
+  server.begin();
+  Serial.println(F("TCP Server started"));
+  delay(3000);
+}
+
+void loop() {
+
+  WiFiEspClient client = server.available();  // listen for incoming clients
+  while (client) {  // if you get a client,
+
+    String data;
+    Wire.requestFrom(8, 96); // request 96 bytes from slave device maximum #8, slave may send less than requested
+    char c;
+    while (Wire.available())   // slave may send less than requested
+    {
+      c = Wire.read();
+      if (strcmp(c, '#') == 0) break;
+      data += c;
+    }
+
+    buf.init();
+    if (client.connected()) {                 // loop while the client's connected
+      sendResponse(client, data);
+      delay(10);
+    } else {
+      client.stop();
+      Serial.println(F("Client disconnected"));
+    }
+    delay(2000);
+  }
+}
+
+void sendResponse(WiFiEspClient client, String data)
+{
+  client.println(data);
+}
+
+
+void printWifiStatus()
+{
+  IPAddress ip = WiFi.localIP();
+  Serial.println(ip);
+}

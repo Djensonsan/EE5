@@ -1,0 +1,2 @@
+All resources for the Arduino Uno that implements: the Joystick, the GPS and D/A convertor.
+This Arduino communicates with the Master Arduino over I2C.
