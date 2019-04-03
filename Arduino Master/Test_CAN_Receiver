@@ -1,54 +1,107 @@
 
-#include<Wire.h>
+#include <SPI.h>
+#include "df_can.h"
 
-const int MPU_addr=0x68;
-int16_t axis_X,axis_Y,axis_Z;
+const int SPI_CS_PIN = 10;
+MCPCAN CAN(SPI_CS_PIN); // Set CS pin
 
-int minVal=265;
-int maxVal=402;
+union stuff
+{
+  float value;
+  byte bytes[4];
+};
 
-double x;
-double y;
-double z;
- 
+unsigned char flagRecv = 0;
+unsigned char len = 0;
+unsigned char buf[8];
+char str[20];
 
-
-void setup(){
-  Wire.setClock(400000);
-  Wire.begin();
-  Wire.beginTransmission(MPU_addr);
-  Wire.write(0x6B);
-  Wire.write(0);
-  Wire.endTransmission(true);
+void setup()
+{
   Serial.begin(9600);
+  int count = 50;                                     // the max numbers of initializint the CAN-BUS, if initialize failed first!.
+  do {
+    CAN.init();   //must initialize the Can interface here!
+    if (CAN_OK == CAN.begin(CAN_500KBPS))                  // init can bus : baudrate = 500k
+    {
+      Serial.println("DFROBOT's CAN BUS Shield init ok!");
+      break;
+    }
+    else
+    {
+      Serial.println("DFROBOT's CAN BUS Shield init fail");
+      Serial.println("Please Init CAN BUS Shield again");
+
+      delay(100);
+      if (count <= 1)
+        Serial.println("Please give up trying!, trying is useless!");
+    }
+
+  } while (count--);
+
+
+  attachInterrupt(0, MCP2515_ISR, FALLING); // start interrupt
 }
-void loop(){
-  Wire.beginTransmission(MPU_addr);
-  Wire.write(0x3B);
-  Wire.endTransmission(false);
-  Wire.requestFrom(MPU_addr,14,true);
-  axis_X=Wire.read()<<8|Wire.read();
-  axis_Y=Wire.read()<<8|Wire.read();
-  axis_Z=Wire.read()<<8|Wire.read();
-    int xAng = map(axis_X,minVal,maxVal,-90,90);
-    int yAng = map(axis_Y,minVal,maxVal,-90,90);
-    int zAng = map(axis_Z,minVal,maxVal,-90,90);
 
-       x= RAD_TO_DEG * (atan2(-yAng, -zAng)+PI);
-       y= RAD_TO_DEG * (atan2(-xAng, -zAng)+PI);
-       z= RAD_TO_DEG * (atan2(-yAng, -xAng)+PI);
+void MCP2515_ISR()
+{
+  flagRecv = 1;
+}
 
-     Serial.print("Angle of inclination in Z axis = ");
-     Serial.print(z);
-     Serial.println((char)176);
+void loop()
+{
+  if (flagRecv)
+  { // check if get data
 
-   /*  Serial.print("Angle of inclination in Y axis= ");
-     Serial.print(y);
-     Serial.println((char)176);
+    flagRecv = 0;                   // clear flag
 
-     Serial.print("Angle of inclination in Z axis= ");
-     Serial.print(z);
-     Serial.println((char)176);*/
-     Serial.println("-------------------------------------------");
-     delay(1000);
+    // iterate over all pending messages
+    // If either the bus is saturated or the MCU is busy,
+    // both RX buffers may be in use and after having read a single
+    // message, MCU does  clear the corresponding IRQ conditon.
+    while (CAN_MSGAVAIL == CAN.checkReceive())
+    {
+       uint32_t ts1 = millis();
+      // read data,  len: data length, buf: data buf
+      CAN.readMsgBuf(&len, buf);
+      Serial.println("\r\n------------------------------------------------------------------");
+      switch (CAN.getCanId()) {
+        case 1:
+          Serial.print("Get Data From the first segment, the angle now is ");
+          break;
+        case 2:
+          Serial.print("Get Data From the second segment, the angle now is ");
+          break;
+        case 3:
+          Serial.print("Get Data From the third segment, the angle now is ");
+          break;
+          case 7:
+          Serial.print("Get Data From the cylinder, the angle now is ");
+          break;
+          case 9:
+          Serial.print("Get Data From the ventilator, the temperature now is ");
+          break;
+          case 16:
+          Serial.print("Motor failed!! Please go and check!!");
+          break;
+        default:
+        Serial.print(CAN.getCanId());
+        break;
+      }
+
+      stuff sensor_data;
+      // print the data
+      for (int i = 0; i < len; i++)
+      {
+        sensor_data.bytes[i] = buf[i];
+      }
+      Serial.print(sensor_data.value); Serial.println("潞");
+
+      Serial.println();
+      uint32_t ts2 = millis();
+      //Serial.println();
+      //Serial.print("The time take to receive this message is: "); Serial.print(ts2-ts1); Serial.println("mS");
+      
+    }
+  }
 }
