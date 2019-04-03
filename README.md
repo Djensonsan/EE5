@@ -6,3 +6,5 @@ The code for the Android application is kept in a different repository here:
 https://github.com/NathanHerrebosch/AWB_App.git
 
 A general overview of used hardware and software can be found on our openproject wiki.
+
+Please also note the Documents folder where additional documentation is found for testing/implementing our project.
