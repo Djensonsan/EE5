@@ -2,7 +2,10 @@
 #include "Wire_Jens.h"
 #include "WiFiEsp.h"
 #include <SPI.h>
+#include <SD.h>
 #include "df_can.h"
+
+#define SD_CS 4
 
 const int SPI_CS_PIN = 10;
 MCPCAN CAN(SPI_CS_PIN); // Set CS pin
@@ -38,12 +41,10 @@ String data;
 WiFiEspServer server(8080);
 
 void setup() {
-  // WIFI MODULE
   Serial.begin(9600);
   Serial1.begin(115200);    // initialize serial for ESP module
   WiFi.init(&Serial1);
   Wire.begin();
-
 
   int count = 50;                                     // the max numbers of initializint the CAN-BUS, if initialize failed first!.
   can_update = false;
@@ -70,10 +71,11 @@ void setup() {
 
   attachInterrupt(0, MCP2515_ISR, FALLING); // start interrupt
 
-  // check for the presence of the shield
+
+  // WIFI MODULE
   if (WiFi.status() == WL_NO_SHIELD) {
     Serial.println(F("WiFi shield not present"));
-    while (true); // don't continue
+    while (true);
   }
   // initialize ESP module
   Serial.print(F("Attempting to start AP "));
@@ -93,6 +95,20 @@ void setup() {
   Serial.println(F("TCP Server started"));
   delay(3000);
   time_start = millis();
+
+
+  // SD CARD
+  pinMode(SD_CS, OUTPUT);
+  digitalWrite(SD_CS, 1);
+  Serial.print("Initializing SD card..."); 
+
+  // see if the card is present and can be initialized:
+  if (!SD.begin(SD_CS)) {
+    Serial.println("Card failed, or not present");
+    // don't do anything more:
+    while (1);
+  }
+  Serial.println("card initialized."); 
 }
 
 void loop() {
@@ -176,6 +192,70 @@ void loop() {
       }
     }
   }
+
+  String data;
+  // Check timer for Joystick Update; Either restart timer or wait.
+  time_now = millis();
+  if (time_now - time_start > 2000) {
+    joystick_update = true;
+    time_start = millis();
+  } else {
+    joystick_update = false;
+  }
+
+  if (can_update) {
+    Wire.requestFrom(8, 96); // request 96 bytes from slave device maximum #8, slave may send less than requested
+    char c;
+    while (Wire.available())   // slave may send less than requested
+    {
+      c = Wire.read();
+      if (strcmp(c, '#') == 0) break;
+      data += c;
+    }
+    data += " S1: " + String(sensor1_value) + " S2: " + String(sensor2_value) + " S3: " + String(sensor3_value);
+    SD_log(data);
+    can_update = false;
+  } else if (joystick_update) {
+    Wire.requestFrom(8, 96); // request 96 bytes from slave device maximum #8, slave may send less than requested
+    char c;
+    while (Wire.available())   // slave may send less than requested
+    {
+      c = Wire.read();
+      if (strcmp(c, '#') == 0) break;
+      data += c;
+    }
+    joystick_update = false;
+    SD_log(data);
+  }
+
+  if (flagRecv)
+  {
+    int id;
+    while (CAN_MSGAVAIL == CAN.checkReceive())
+    {
+      CAN.readMsgBuf(&len, buf);
+      id = CAN.getCanId();
+      sensor_data_t sensor_data;
+      for (int i = 0; i < len; i++)
+      {
+        sensor_data.bytes[i] = buf[i];
+      }
+      Serial.println(sensor_data.value);
+      switch (id) {
+        case 1:
+          sensor1_value = sensor_data.value;
+          break;
+        case 2:
+          sensor2_value = sensor_data.value;
+          break;
+        case 3:
+          sensor3_value = sensor_data.value;
+          break;
+      }
+      flagRecv = 0;
+      can_update = true;
+    }
+  }
 }
 
 void MCP2515_ISR()
@@ -193,4 +273,16 @@ void printWifiStatus()
 {
   IPAddress ip = WiFi.localIP();
   Serial.println(ip);
+}
+
+void SD_log(String data)
+{
+  File dataFile = SD.open("data.txt", FILE_WRITE);
+  if (dataFile) {
+    dataFile.println(data);
+    dataFile.close();
+  }
+  else {
+    Serial.println("error opening data.txt");
+  }
 }
