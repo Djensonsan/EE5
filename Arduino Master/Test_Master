@@ -15,8 +15,8 @@ RingBuffer buf(8); // use a ring buffer to increase speed and reduce memory allo
 void setup() {
   // WIFI MODULE
   Serial.begin(9600);
-  Serial3.begin(115200);    // initialize serial for ESP module
-  WiFi.init(&Serial3);
+  Serial1.begin(115200);    // initialize serial for ESP module
+  WiFi.init(&Serial1);
   Wire.begin();
 
   // check for the presence of the shield
