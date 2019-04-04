@@ -92,6 +92,7 @@ void setup() {
   server.begin();
   Serial.println(F("TCP Server started"));
   delay(3000);
+  time_start = millis();
 }
 
 void loop() {
@@ -118,8 +119,6 @@ void loop() {
         data += c;
       }
       data += " S1: " + String(sensor1_value) + " S2: " + String(sensor2_value) + " S3: " + String(sensor3_value);
-      can_update = false;
-
       if (client.connected()) {
         sendResponse(client, data);
         delay(10);
@@ -127,6 +126,7 @@ void loop() {
         client.stop();
         Serial.println(F("Client disconnected"));
       }
+      can_update = false;
     } else if (joystick_update) {
       Wire.requestFrom(8, 96); // request 96 bytes from slave device maximum #8, slave may send less than requested
       char c;
@@ -146,34 +146,34 @@ void loop() {
         Serial.println(F("Client disconnected"));
       }
     }
-  }
 
-  if (flagRecv)
-  {
-    int id;
-    flagRecv = 0;
-    while (CAN_MSGAVAIL == CAN.checkReceive())
+    if (flagRecv)
     {
-      CAN.readMsgBuf(&len, buf);
-      id = CAN.getCanId();
-      sensor_data_t sensor_data;
-      for (int i = 0; i < len; i++)
+      int id;
+      while (CAN_MSGAVAIL == CAN.checkReceive())
       {
-        sensor_data.bytes[i] = buf[i];
+        CAN.readMsgBuf(&len, buf);
+        id = CAN.getCanId();
+        sensor_data_t sensor_data;
+        for (int i = 0; i < len; i++)
+        {
+          sensor_data.bytes[i] = buf[i];
+        }
+        Serial.println(sensor_data.value);
+        switch (id) {
+          case 1:
+            sensor1_value = sensor_data.value;
+            break;
+          case 2:
+            sensor2_value = sensor_data.value;
+            break;
+          case 3:
+            sensor3_value = sensor_data.value;
+            break;
+        }
+        flagRecv = 0;
+        can_update = true;
       }
-      Serial.println(sensor_data.value);
-      switch (id) {
-        case 1:
-          sensor1_value = sensor_data.value;
-          break;
-        case 2:
-          sensor2_value = sensor_data.value;
-          break;
-        case 3:
-          sensor3_value = sensor_data.value;
-          break;
-      }
-      can_update = true;
     }
   }
 }
