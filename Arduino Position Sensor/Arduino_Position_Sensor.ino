@@ -98,13 +98,9 @@ void loop()
 
   MPU.getMotion6(&arx, &ary, &arz, &grx, &gry, &grz); //get the raw values from the accelerometer and gyroscope
   
-  int xAng = map(arx, minVal, maxVal, -90, 90); 
-  int yAng = map(ary, minVal, maxVal, -90, 90);
-  int zAng = map(arz, minVal, maxVal, -90, 90);
-
-  accX = RAD_TO_DEG * (atan2(-yAng, -zAng) + PI); //accelerometer euler angles
-  accY = RAD_TO_DEG * (atan2(-xAng, -zAng) + PI); 
-  accZ = RAD_TO_DEG * (atan2(-yAng, -xAng) + PI); 
+  accX = RAD_TO_DEG * (atan2(-ary, -arz) + PI); //accelerometer euler angles
+  accY = RAD_TO_DEG * (atan2(-arx, -arz) + PI); 
+  accZ = RAD_TO_DEG * (atan2(-ary, -arx) + PI);
 
   grx = grx/gyroScale; 
   gry = gry/gyroScale;   
