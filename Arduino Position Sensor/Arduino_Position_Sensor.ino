@@ -16,9 +16,6 @@ float x, y, z;
 //float prev_x,
 float prev_z;
 
-int minVal = 265;
-int maxVal = 402;
-
 float delta_t, t, prev_t;
 
 union sensor_data_t //struct to split data into bytes to be sent over CAN  bus
