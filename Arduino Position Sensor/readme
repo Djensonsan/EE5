@@ -1,1 +1,4 @@
 All resources for the Arduino Minis that implement: Sensor and CAN bus communication.
+Arduino_Position_Sensor: the first version, suffer from vibration
+Arduino_Position_SensorV2: the latest version up to 4/26/2019, get rid of the effect of vibration
+implemented circular buffer with user-defined filter.(kalman: MODE = 0, complementary: MODE = 1)
