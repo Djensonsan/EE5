@@ -177,7 +177,30 @@ void loop() {
         }
         Serial.println(sensor_data.value);
         switch (id) {
-          case 1:
+            //for debug:
+            case 1:
+          Serial.print("Get Data From the first segment, the angle now is ");
+          break;
+        case 2:
+          Serial.print("Get Data From the second segment, the angle now is ");
+          break;
+        case 3:
+          Serial.print("Get Data From the third segment, the angle now is ");
+          break;
+        case 7:
+          Serial.print("Get Data From the cylinder, the angle now is ");
+          break;
+        case 9:
+          Serial.print("Get Data From the ventilator, the temperature now is ");
+          break;
+        case 10:
+          Serial.print("Get Data From the ventilator, the ventilator now is ");
+          break;
+        case 16:
+          Serial.print("Motor failed!! Please go and check!!");
+          break;
+            //
+         /* case 1:
             sensor1_value = sensor_data.value;
             break;
           case 2:
@@ -186,6 +209,27 @@ void loop() {
           case 3:
             sensor3_value = sensor_data.value;
             break;
+            */
+            if ((id == 1) || (id == 2) || (id == 3) || (id == 7) || (id == 9))
+      {
+        // print the data
+        Serial.print(sensor_data.value); Serial.println("degree");
+      }
+      if (id == 10)
+      {
+        // print the data
+        switch (sensor_data.value)
+        {
+          case 58:
+            Serial.println("cleaning the motor");
+            break;
+          case 59:
+            Serial.println("clooing the motor");
+            break;
+          case 57:
+            Serial.println("in the Idle state");
+            break;
+        }
         }
         flagRecv = 0;
         can_update = true;
