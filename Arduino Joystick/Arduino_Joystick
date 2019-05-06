@@ -52,18 +52,6 @@ void setup()
   SPI.setClockDivider(SPI_CLOCK_DIV4);
   pinMode(CS, OUTPUT);
 
-  digitalWrite(CS, LOW); // setup external reference
-  SPI.transfer(0b00001000);
-  delay(1);
-  SPI.transfer(0);
-  delay(1);
-  SPI.transfer(0);
-  delay(1);
-  SPI.transfer(0b00000000);
-  delay(1);
-  digitalWrite(CS, HIGH);
-  delay(1);
-
   if (amplifier_on)
   {
     min_voltage = 1;
@@ -71,12 +59,12 @@ void setup()
     min_button_voltage = 1;
     max_button_voltage = 3;
   }
-  min = (min_voltage / 5) * 4096; //min 12 bit value
-  max = (max_voltage / 5) * 4096; //max 12 bit value
+  min = (min_voltage / 5) * 65535; //min 12 bit value
+  max = (max_voltage / 5) * 65535; //max 12 bit value
 
-  min_button = (min_button_voltage / 5) * 4096; //min 12 bit value
-  max_button = (max_button_voltage / 5) * 4096; //max 12 bit value
-  mid_button = (mid_button_voltage / 5) * 4096;
+  min_button = (min_button_voltage / 5) * 65535; //min 12 bit value
+  max_button = (max_button_voltage / 5) * 65535; //max 12 bit value
+  mid_button = (mid_button_voltage / 5) * 65535;
 
   pinMode(button_up, INPUT);
   pinMode(button_down, INPUT);
@@ -136,28 +124,26 @@ void SPI_send_DA(unsigned int value, int channel)
 {
   byte low = (value & 0x00FF);
   value  = value >> 8;
-  byte high = (value & 0x000F);
-  switch (channel)
-  {
-    case 0:
-      high += 0b00010000;
-      break;
-    case 1:
-      high += 0b00110000;
-      break;
-    case 2:
-      high += 0b01010000;
-      break;
-    case 3:
-      high += 0b01110000;
-      break;
-  }
+  byte high = (value & 0x00FF);
   digitalWrite(CS, LOW);
   delay(1);
-  SPI.transfer(0b00000011);
+  switch(channel)
+  {
+    case 0:
+    SPI.transfer(0b00010000);
+    break;
+    case 1:
+    SPI.transfer(0b00010010);
+    break;
+    case 2:
+    SPI.transfer(0b00010100);
+    break;
+    case 3:
+    SPI.transfer(0b00010110);
+    break;
+  }
   SPI.transfer(high);
   SPI.transfer(low);
-  SPI.transfer(0x00);
   digitalWrite(CS, HIGH);
   delay(1);
 }
