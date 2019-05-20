@@ -58,6 +58,7 @@ void setup()
     max_voltage = 3;
     min_button_voltage = 1;
     max_button_voltage = 3;
+    mid_button_voltage = 2;
   }
   min = (min_voltage / 5) * 65535; //min 12 bit value
   max = (max_voltage / 5) * 65535; //max 12 bit value
@@ -72,6 +73,7 @@ void setup()
   // I2C Initialisation
   Wire.begin(8); // join i2c bus with address #8
   Wire.onRequest(interrupt_routine); // Set function as the ISR for I2C communication
+  Serial.println("Setup Done");
 }
 
 void loop()
@@ -99,23 +101,19 @@ void loop()
   else if (down & !up) SPI_send_DA(min_button, 3);
   else SPI_send_DA(mid_button, 3);
 
-  joystick_data = " z: " + String(z_in) + " y: " + String(y_in) + " x: " + String(x_in) + " u: " + String(up) + " d: " + String (down);
+  joystick_data = String(x_in) + ">" + String(y_in) + ">" + String(z_in) + ">" + String(up) + ">" + String (down) + ">";
 
-  if (serial_GPS.available() > 0) {
-    //if (
-      gps.encode(serial_GPS.read());
-      GPS_data = formatGPSData();
-    }
-    /*else {
-    GPS_data = "GPS Unavailable ATM";
+  while (serial_GPS.available() > 0) {
+    if (gps.encode(serial_GPS.read()))
+      formatGPSData();
   }
-  */
-  data = GPS_data + joystick_data+"#";
+  data = GPS_data + joystick_data + "#";
+  Serial.println("Data: " + data);
 }
 
 // ISR for I2C
 void interrupt_routine() {
-  char data_buf [96]={};
+  char data_buf [96] = {};
   data.toCharArray(data_buf, 96); // transform the Arduino string object to a char array.
   Wire.write(data_buf, 96);
 }
@@ -127,20 +125,20 @@ void SPI_send_DA(unsigned int value, int channel)
   byte high = (value & 0x00FF);
   digitalWrite(CS, LOW);
   delay(1);
-  switch(channel)
+  switch (channel)
   {
     case 0:
-    SPI.transfer(0b00010000);
-    break;
+      SPI.transfer(0b00010000);
+      break;
     case 1:
-    SPI.transfer(0b00010010);
-    break;
+      SPI.transfer(0b00010010);
+      break;
     case 2:
-    SPI.transfer(0b00010100);
-    break;
+      SPI.transfer(0b00010100);
+      break;
     case 3:
-    SPI.transfer(0b00010110);
-    break;
+      SPI.transfer(0b00010110);
+      break;
   }
   SPI.transfer(high);
   SPI.transfer(low);
@@ -149,21 +147,9 @@ void SPI_send_DA(unsigned int value, int channel)
 }
 
 // Returns a string holding the formatted GPS data.
-String formatGPSData() {
+void formatGPSData() {
   String GPSData;
 
-  GPSData += "Location: ";
-  if (gps.location.isValid())
-  {
-    GPSData += gps.location.lat();
-    GPSData += ",";
-    GPSData += gps.location.lng();
-  }
-  else
-  {
-    GPSData += "INVALID";
-  }
-  GPSData += " Date/Time: ";
   if (gps.date.isValid())
   {
     GPSData += gps.date.month();
@@ -176,7 +162,9 @@ String formatGPSData() {
   {
     GPSData += "INVALID";
   }
+
   GPSData += " ";
+
   if (gps.time.isValid())
   {
     if (gps.time.hour() < 10) GPSData += "0";
@@ -195,5 +183,18 @@ String formatGPSData() {
   {
     GPSData += "INVALID";
   }
-  return GPSData;
+  GPSData += ">";
+  if (gps.location.isValid())
+  {
+    GPSData += String(gps.location.lat(), 6);
+    GPSData += ">";
+    GPSData += String(gps.location.lng(), 6);
+    GPSData += ">";
+  }
+  else
+  {
+    GPSData += "0.000000>0.000000>";
+    //12/12/2012 00:00:00.00
+  }
+  GPS_data = GPSData;
 }
