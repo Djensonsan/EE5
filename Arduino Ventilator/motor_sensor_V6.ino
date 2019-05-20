@@ -10,8 +10,6 @@
 #define min_speed -400
 #define Temperature_difference 5  //Send temperature through CAN when there is a change > than this value
 
-#define CAN_ID 0x03
-
 #define IDLE 57
 #define CLEAN_MOTOR 58
 #define COOL_MOTOR 59
@@ -334,7 +332,7 @@ void sendThroughCanBus(int id, float data) //id == 9:send temperature, id == 10:
   sensor_data_t sensor_data_x;
   sensor_data_x.value = data;
   byte data_x[4] = {sensor_data_x.bytes[0], sensor_data_x.bytes[1], sensor_data_x.bytes[2], sensor_data_x.bytes[3]};
-  CAN.sendMsgBuf(CAN_ID, id, 4, data_x);
+  CAN.sendMsgBuf(id, 0, 4, data_x);
 }
 
 /*****************************CAN setup***********************************************************/
