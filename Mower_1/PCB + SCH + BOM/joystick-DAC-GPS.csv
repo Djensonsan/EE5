@@ -1,0 +1,9 @@
+"Part";"Value";"Device";"Package";"Description";"MF";"MPN";"OC_FARNELL";"OC_NEWARK";"PROD_ID";"SPICEPREFIX";
+"B1";"ARDUINO_UNO_R3_SHIELDBASIC";"ARDUINO_UNO_R3_SHIELDBASIC";"UNO_R3_SHIELD";"Arduino R3 Shield Footprint";"";"";"";"";"";"";
+"I2C";"";"W237-102";"W237-102";"WAGO SCREW CLAMP";"";"237-102";"unknown";"70K9898";"";"";
+"J1";"";"CONN_04";"1X04";"Multi connection point. Often used as Generic Header-pin footprint for 0.1 inch spaced/style header connections";"";"";"";"";"CONN-09696";"";
+"JP2";"";"PINHD-1X6";"1X06";"PIN HEADER";"";"";"";"";"";"";
+"R1";"220k";"R-EU_0204/7";"0204/7";"RESISTOR, European symbol";"";"";"";"";"";"R";
+"R2";"220k";"R-EU_0204/7";"0204/7";"RESISTOR, European symbol";"";"";"";"";"";"R";
+"X2";"";"W237-4";"W237-4";"WAGO SCREW CLAMP";"";"";"unknown";"unknown";"";"";
+"X3";"";"W237-4";"W237-4";"WAGO SCREW CLAMP";"";"";"unknown";"unknown";"";"";

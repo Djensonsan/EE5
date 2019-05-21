@@ -1,0 +1,6 @@
+"Part";"Value";"Device";"Package";"Description";"MF";"MPN";"OC_FARNELL";"OC_NEWARK";
+"B2";"ARDUINO_PRO_MINI";"ARDUINO_PRO_MINI";"ARDUINO_PRO_MINI";"SparkFun Pro Mini";"";"";"";"";
+"B3";"ARDUINO_UNO_R3NO_HOLES";"ARDUINO_UNO_R3NO_HOLES";"ARDUINO_R3_NO_HOLES";"Arduino R3 Footprint with SPI header";"";"";"";"";
+"IC1";"LM1117DT-3.3";"LM1117DT-3.3";"TO252";"800mA Low-Dropout Linear Regulator";"Texas Instruments";"LM1117DT-3.3";"1469048";"41K3430";
+"U1";"GY-521MPU6050";"GY-521MPU6050";"GY-521";"";"";"";"";"";
+"X1";"";"W237-102";"W237-102";"WAGO SCREW CLAMP";"";"237-102";"unknown";"70K9898";

@@ -1,0 +1,18 @@
+"Part";"Value";"Device";"Package";"Description";"MF";"MPN";"OC_FARNELL";"OC_NEWARK";"PROD_ID";"SPICEPREFIX";
+"DAC_INPUTS";"";"CONN_05";"1X05";"Multi connection point. Often used as Generic Header-pin footprint for 0.1 inch spaced/style header connections";"";"";"";"";"";"";
+"IC1";"LM358N";"LM358N";"DIL08";"OP AMP also LM158; LM258; LM2904";"";"";"";"";"";"";
+"IC2";"LM358N";"LM358N";"DIL08";"OP AMP also LM158; LM258; LM2904";"";"";"";"";"";"";
+"OUTPUTS";"";"CONN_04";"1X04";"Multi connection point. Often used as Generic Header-pin footprint for 0.1 inch spaced/style header connections";"";"";"";"";"CONN-09696";"";
+"POWER";"";"W237-102";"W237-102";"WAGO SCREW CLAMP";"";"237-102";"unknown";"70K9898";"";"";
+"R1";"";"R-EU_0204/7";"0204/7";"RESISTOR, European symbol";"";"";"";"";"";"R";
+"R2";"";"R-EU_0204/7";"0204/7";"RESISTOR, European symbol";"";"";"";"";"";"R";
+"R3";"";"R-EU_0204/7";"0204/7";"RESISTOR, European symbol";"";"";"";"";"";"R";
+"R4";"";"R-EU_0204/7";"0204/7";"RESISTOR, European symbol";"";"";"";"";"";"R";
+"R5";"";"R-EU_0204/7";"0204/7";"RESISTOR, European symbol";"";"";"";"";"";"R";
+"R6";"";"R-EU_0204/7";"0204/7";"RESISTOR, European symbol";"";"";"";"";"";"R";
+"R7";"";"R-EU_0204/7";"0204/7";"RESISTOR, European symbol";"";"";"";"";"";"R";
+"R8";"";"R-EU_0204/7";"0204/7";"RESISTOR, European symbol";"";"";"";"";"";"R";
+"R9";"";"R-EU_0204/7";"0204/7";"RESISTOR, European symbol";"";"";"";"";"";"R";
+"R10";"";"R-EU_0204/7";"0204/7";"RESISTOR, European symbol";"";"";"";"";"";"R";
+"R12";"";"R-EU_0204/7";"0204/7";"RESISTOR, European symbol";"";"";"";"";"";"R";
+"R13";"";"R-EU_0204/7";"0204/7";"RESISTOR, European symbol";"";"";"";"";"";"R";

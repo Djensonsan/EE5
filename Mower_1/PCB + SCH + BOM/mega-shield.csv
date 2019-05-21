@@ -1,0 +1,6 @@
+"Part";"Value";"Device";"Package";"Description";"MF";"MPN";"OC_FARNELL";"OC_NEWARK";
+"B1";"ARDUINO_UNO_R3_SHIELDBASIC";"ARDUINO_UNO_R3_SHIELDBASIC";"UNO_R3_SHIELD";"Arduino R3 Shield Footprint";"";"";"";"";
+"J1";"";"CONN_04X2";"2X4";"Multi connection point. Often used as Generic Header-pin footprint for 0.1 inch spaced/style header connections";"";"";"";"";
+"J2";"";"CONN_02";"1X02";"Multi connection point. Often used as Generic Header-pin footprint for 0.1 inch spaced/style header connections";"";"";"";"";
+"J3";"";"CONN_02";"1X02";"Multi connection point. Often used as Generic Header-pin footprint for 0.1 inch spaced/style header connections";"";"";"";"";
+"X1";"";"W237-102";"W237-102";"WAGO SCREW CLAMP";"";"237-102";"unknown";"70K9898";
