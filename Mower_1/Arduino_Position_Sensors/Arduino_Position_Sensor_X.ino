@@ -5,8 +5,9 @@
 #include "MPU6050.h"
 
 #define MODE 0 //mode=0 kalman filter, MODE=1 complimentary filter
+#define OFFSET 0
 #define DEGREE_DIFFERENCE 5
-
+#define CAN_ID 0x03
 #define BUFFER_LENGTH 128
 
 /************Kalman filter*************/
@@ -253,8 +254,8 @@ void showDifference(float value, float difference) {
     {
       prevAngleX_Kal = value;
       Serial.print("Circular buffer Kalman X to the ground ");
-      Serial.println(180 - value);
-      sendThroughCanBus(180 - value);
+      Serial.println(180 - value + OFFSET);
+      sendThroughCanBus(180 - value + OFFSET);
     }
   }
   else
@@ -263,8 +264,8 @@ void showDifference(float value, float difference) {
     {
       prevAngleX_Com = value;
       Serial.print("Circular buffer Complementary X to the ground ");
-      Serial.println(180 - value);
-      sendThroughCanBus(180 - value);
+      Serial.println(180 - value + OFFSET);
+      sendThroughCanBus(180 - value + OFFSET);
     }
   }
 }
@@ -274,5 +275,5 @@ void sendThroughCanBus(float data)
   sensor_data_t sensor_data_x;
   sensor_data_x.value = data;
   byte data_x[4] = {sensor_data_x.bytes[0], sensor_data_x.bytes[1], sensor_data_x.bytes[2], sensor_data_x.bytes[3]};
-  CAN.sendMsgBuf(0x01, 0, 4, data_x);
+  CAN.sendMsgBuf(CAN_ID, 0, 4, data_x);
 }
