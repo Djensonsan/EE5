@@ -5,25 +5,26 @@
 #include "MPU6050.h"
 
 #define MODE 0 //mode=0 kalman filter, MODE=1 complimentary filter
-#define OFFSET 0
 #define DEGREE_DIFFERENCE 5
 #define CAN_ID 0x03
+#define OFFSET 12
+
 #define BUFFER_LENGTH 128
 
 /************Kalman filter*************/
 /*variables used for display*/
-float prevAngleX_Kal;
+float prevAngleZ_Kal;
 /*variables for the final angle*/
-float kalAngleX; // Calculated angle using a Kalman filter
-Kalman kalmanX; // Create a Kalman instance
+float kalAngleZ; // Calculated angle using a Kalman filter
+Kalman kalmanZ; // Create a Kalman instance
 
 /***********Complementary filter*************/
 /*variables used for display*/
-float prevAngleX_Com;
+float prevAngleZ_Com;
 /*variables for the final angle*/
-float compAngleX; // Calculated angle using a complementary filter
+float compAngleZ; // Calculated angle using a complementary filter
 /*variables used inside the complementary filter*/
-float prev_gyrox;
+float prev_gyroz;
 
 /****************MPU6050*********************/
 MPU6050 MPU;
@@ -55,9 +56,13 @@ union sensor_data_t //struct to split data into bytes to be sent over CAN  bus
 
 void setup()
 {
-  mpuSetup();             //initialize MPU6050
+  Serial.begin(9600); //setup serial
+  while (!Serial) { // wait for serial port to connect. Needed for Leonardo only
+  }
 
   canSetup();             //initialize CAN bus shield
+  
+  mpuSetup();             //initialize MPU6050
 
   initializeVariables();  //initialize all global variables
 
@@ -76,6 +81,8 @@ void loop()
 
   average = sum / BUFFER_LENGTH;
 
+  Serial.println(average);
+  
   if (buffer_counter >= BUFFER_LENGTH)
   {
     buffer_counter = 0;
@@ -88,7 +95,7 @@ void loop()
 /*********************************MPU setup****************************************************/
 void mpuSetup()
 {
-  Serial.begin(9600);
+  
   Wire.setClock(400000);
   Wire.begin();
   Wire.beginTransmission(MPU_addr);
@@ -127,11 +134,11 @@ void initializeVariables()
 {
   if (MODE == 0)                   //kalman
   {
-    prevAngleX_Kal = 0;
+    prevAngleZ_Kal = 0;
   }
   else                             //default complementary
   {
-    prevAngleX_Com = 0;
+    prevAngleZ_Com = 0;
   }
 }
 
@@ -144,13 +151,13 @@ void initializeAngle()
   {
     MPU.getMotion6(&arx, &ary, &arz, &grx, &gry, &grz); //get the raw values from the accelerometer and gyroscope
     mapRawValues();
-    initialAngleSum = initialAngleSum + accX;
+    initialAngleSum = initialAngleSum + accZ;
   }
-  accX = initialAngleSum / 100;
+  accZ = initialAngleSum / 100;
 
   if (MODE == 0)                                       //kalman
   {
-    kalmanX.setAngle(accX);                            //Set starting angle for Kalman filter
+    kalmanZ.setAngle(accZ);                            //Set starting angle for Kalman filter
   }
   else                                                 //default complementary
   {
@@ -171,110 +178,105 @@ void initializeBuffer()
 /********************************************Read avg*******************************************************/
 void readAvg()
 {
-  long int sum_accx = 0;
-  long int sum_grx = 0;
+  long int sum_accz = 0;
+  long int sum_grz = 0;
   for (int i = 0; i < 4; i++)
   {
     MPU.getMotion6(&arx, &ary, &arz, &grx, &gry, &grz);   //get the raw values from the accelerometer and gyroscope
-    sum_accx = sum_accx + arx;
-    sum_grx = sum_grx + grx;
+    sum_accz = sum_accz + arz;
+    sum_grz = sum_grz + grz;
   }
-  arx = sum_accx / 4;
-  grx = sum_grx / 4;
+  arz = sum_accz / 4;
+  grz = sum_grz / 4;
 }
 
 /*******************************Initialize the complementary filter**********************************/
 void initializeComplementary()
 {
-  compAngleX = accX;
-  prev_gyrox = grx;
+  compAngleZ = accZ;
+  prev_gyroz = grz;
 }
 
 /********************************Map Raw values****************************************************/
 void mapRawValues()
 {
-  accX = RAD_TO_DEG * (atan2(-ary, -arz) + PI);    //accelerometer euler angles
-  if (accX <= 180)
-  {
-    accX = accX + 180;
-  }
-  else
-  {
-    accX = accX - 180;
-  }
-  grx = grx / gyroScale;                          //in degree/sec
+  accZ = RAD_TO_DEG * (atan2(-ary, -arx) + PI);    //accelerometer euler angles
+  accZ = accZ - 90;
+  grz = grz / gyroScale;                          //in degree/sec
 
 }
 
 /**********************************fill in the buffer***********************************************/
 void updateBuffer(int i)
 {
-  float tempX;
+  float tempZ;
   
   readAvg();
   mapRawValues();
 
   //calculate dt
   double dt = (double)(millis() - t) / 1000;                                //time to integrate gyroscope output
+  Serial.println(dt);
+  
   t = millis();
 
   if (MODE == 0) //kalman
   {
-    kalAngleX = kalmanX.getAngle(accX, grx, dt);
-    tempX = kalAngleX;
+    kalAngleZ = kalmanZ.getAngle(accZ, grz, dt);
+    tempZ = kalAngleZ;
   }
 
   else
   {
-    compAngleX = complementaryFilter(compAngleX, accX, grx, prev_gyrox, dt);  // Calculate the angle using a complementary filter
-    tempX = compAngleX;
+    compAngleZ = complementaryFilter(compAngleZ, accZ, grz, prev_gyroz, dt);  // Calculate the angle using a complementary filter
+    tempZ = compAngleZ;
   }
 
   //circular buffer & average
   sum = sum - average_buffer[i];
-  average_buffer[i] = tempX;
+  average_buffer[i] = tempZ;
 
   sum = sum + average_buffer[i];
 }
 
 /************************************************Complementary filter*************************************************/
-float complementaryFilter(float lastAngle, float accX, float grx, float prev_grx, double dt)
+float complementaryFilter(float lastAngle, float accZ, float grz, float prev_grz, double dt)
 {
 
   float alpha = 0.96;                                                                    //filter coefficient
-  float x = (alpha * (lastAngle + dt * 0.5 * (grx + prev_grx)) + ((1 - alpha) * accX));  //trapezoidal ruel
-  return x;
+  float z = (alpha * (lastAngle + dt * 0.5 * (grz + prev_grz)) + ((1 - alpha) * accZ));  //trapezoidal ruel
+  return z;
 }
 
 /******************************Only print out when there is difference*******************************************/
 void showDifference(float value, float difference) {
   if (MODE == 0) //kalman
   {
-    if (abs(value - prevAngleX_Kal ) > difference  ) //send x-axis data over CAN bus
+    if (abs(value - prevAngleZ_Kal ) > difference  ) //send x-axis data over CAN bus
     {
-      prevAngleX_Kal = value;
-      Serial.print("Circular buffer Kalman X to the ground ");
-      Serial.println(180 - value + OFFSET);
-      sendThroughCanBus(180 - value + OFFSET);
+      prevAngleZ_Kal = value;
+      Serial.print("Circular buffer Kalman Z to the ground ");
+      Serial.println(value+OFFSET);
+      sendThroughCanBus(value+OFFSET);
     }
   }
   else
   {
-    if (abs(value - prevAngleX_Com ) > difference  ) //send x-axis data over CAN bus
+    if (abs(value - prevAngleZ_Com ) > difference  ) //send x-axis data over CAN bus
     {
-      prevAngleX_Com = value;
-      Serial.print("Circular buffer Complementary X to the ground ");
-      Serial.println(180 - value + OFFSET);
-      sendThroughCanBus(180 - value + OFFSET);
+      prevAngleZ_Com = value;
+      Serial.print("Circular buffer Complementary Z to the ground ");
+      Serial.println(value+OFFSET);
+      sendThroughCanBus(value+OFFSET);
     }
   }
 }
 
 void sendThroughCanBus(float data)
 {
-  sensor_data_t sensor_data_x;
-  sensor_data_x.value = data;
-  byte data_x[4] = {sensor_data_x.bytes[0], sensor_data_x.bytes[1], sensor_data_x.bytes[2], sensor_data_x.bytes[3]};
-  CAN.sendMsgBuf(CAN_ID, 0, 4, data_x);
+  sensor_data_t sensor_data_z;
+  sensor_data_z.value = data;
+  byte data_z[4] = {sensor_data_z.bytes[0], sensor_data_z.bytes[1], sensor_data_z.bytes[2], sensor_data_z.bytes[3]};
+  CAN.sendMsgBuf(CAN_ID, 0, 4, data_z);
 }
 
