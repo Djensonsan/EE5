@@ -23,3 +23,4 @@ The latest and older versions of the code can be found here.
 For more information, read our manual and installation guide. They are also included in the ZIP-file. 
 
 ## Video of the final result
+https://kuleuven.mediaspace.kaltura.com/media/final_video_lastversion/1_84033um8
