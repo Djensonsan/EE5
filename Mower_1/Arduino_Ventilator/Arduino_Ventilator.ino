@@ -261,13 +261,13 @@ void stopIfFault()
     md.disableDrivers();
     delay(1);
     Serial.println("M1 fault");
+    sendThroughCanBus(16, 0);
     while (1)
     {
       digitalWrite(led_indicator, LOW);
       delay(1000);
       digitalWrite(led_indicator, HIGH);
       delay(1000);
-      sendThroughCanBus(16, 0);
     }
   }
 }
