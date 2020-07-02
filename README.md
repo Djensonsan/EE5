@@ -1,4 +1,4 @@
-# EE5: Mowing Machine 1
+# EE5: Smart Mowing Machine Project
 This is our updated repository!
 
 This GitHub repository holds all Arduino resources used for our EE5 Project.
